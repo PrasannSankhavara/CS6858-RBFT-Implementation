@@ -96,19 +96,28 @@ module.exports = { connectToServer, readEnvFile };
 if (require.main === module) {
   const scriptDirectory = path.dirname(process.argv[1]);
   const envFilePath = path.join(scriptDirectory, 'me.env');
+  const messageFilePath = path.join(scriptDirectory, 'message.txt');
 
   if (!fs.existsSync(envFilePath)) {
     console.error(`Error: Environment file not found at ${envFilePath}`);
     process.exit(1);
   }
 
-  if (process.argv.length < 4) {
-    console.error('Usage: node your_script.js <IP_ADDRESS> <PORT>');
+  if (!fs.existsSync(messageFilePath)) {
+    console.error(`Error: Message file not found at ${messageFilePath}`);
+    process.exit(1);
+  }
+
+  if (process.argv.length < 5) {
+    console.error('Usage: node your_script.js <IP_ADDRESS> <PORT> <TIMEOUT>');
     process.exit(1);
   }
 
   const ip = process.argv[2];
   const port = parseInt(process.argv[3]);
+  const timeout = parseInt(process.argv[4]);
+
+  const messageContent = fs.readFileSync(messageFilePath, 'utf8').trim();
 
   const client_server = net.createServer(socket => {
     console.log('Client connected.');
@@ -132,23 +141,12 @@ if (require.main === module) {
 
   const servers = readEnvFile(envFilePath);
   
-  function sendRequests() {
-    for (let phaseNumber = 0; phaseNumber <= 50; phaseNumber++) {
-      const startPhaseMessage = new Client_Message(MessageType.REQUEST, 'start_phase' + 100 + phaseNumber, phaseNumber, `${ip}:${port}`);
-      // Send the message to every server
-      timers.set(`${phaseNumber}`,new Date());
-      servers.forEach(server => {
-        connectToServer(server, startPhaseMessage);
-      });
-    }
-  }
-
   function sendRequestsWithDelay() {
     let phaseNumber = 0;
 
     function sendRequest() {
-      if (phaseNumber <= 20) {
-        const startPhaseMessage = new Client_Message(MessageType.REQUEST, 'start_phase' + 100 + phaseNumber, phaseNumber, `${ip}:${port}`);
+      if (phaseNumber <= 100) {
+        const startPhaseMessage = new Client_Message(MessageType.REQUEST, messageContent+phaseNumber, phaseNumber, `${ip}:${port}`);
         // Send the message to every server
         timers.set(`${phaseNumber}`,new Date());
         servers.forEach(server => {
@@ -157,15 +155,13 @@ if (require.main === module) {
 
         phaseNumber++;
 
-        // Sleep for 100 millisecond before sending the next request
-        setTimeout(sendRequest, 1000);
+        // Sleep for specified timeout milliseconds before sending the next request
+        setTimeout(sendRequest, timeout);
       }
     }
 
     sendRequest();
   }
 
-  // Uncomment one of the following lines based on your preference
-  // sendRequests(); // Original loop without delay
   sendRequestsWithDelay(); // Loop with delay between requests
 }

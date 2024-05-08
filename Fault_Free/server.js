@@ -35,8 +35,8 @@ const prepareKey_requestKey = new Map();
 // Variables for view and phase
 let view = 1;
 let phase = 1;
-let f=2;
-let n=7;
+let f=1;
+let n=4;
 
 // Map to store commit counts for each instance
 let instanceCommitCounts = new Map();
@@ -274,6 +274,10 @@ function handleCommitMessage(receivedMessage, currentPeer, peers) {
     commitSet.add(receivedMessage.sender);
     console.log(`Received COMMIT from ${receivedMessage.sender} (Total COMMIT messages for instance ${receivedMessage.instanceNumber}, phase ${receivedMessage.phaseNumber}: ${commitSet.size})`);
     if (commitSet.size === 2*f+1&&phaseCounts.repair.has(commitKey)) {
+      const key1=prepareKey_requestKey.get(commitKey);
+      console.log(`----key1::${key1}--------`);
+      const key2=requestkey_data.get(key1);
+      console.log(`----key2::${key2}--------`);
       const data_to_commit = requestkey_data.get(prepareKey_requestKey.get(commitKey));
       console.log(`----------------Instance ${receivedMessage.instanceNumber}, Phase ${receivedMessage.phaseNumber} completed.------------------`);
       console.log(`${instanceCommitCounts.get(receivedMessage.instanceNumber)}-- ${instanceCommitCounts.get(0)}`);
@@ -289,18 +293,18 @@ function handleCommitMessage(receivedMessage, currentPeer, peers) {
       }
 
       instanceCommitCounts.set(receivedMessage.instanceNumber, (instanceCommitCounts.get(receivedMessage.instanceNumber) || 0) + 1);
-      if (instanceCommitCounts.get(receivedMessage.instanceNumber) - instanceCommitCounts.get(0) >= 5) {
+      if (instanceCommitCounts.get(receivedMessage.instanceNumber) - instanceCommitCounts.get(0) >= 10) {
         //send view_change_command message, write this part
         console.log(`Sending View Change to all peers`);
         console.log(`Sending View Change to all peers`);
         connectToPeers(peers, new Message(MessageType.VIEW_CHANGE, receivedMessage.instanceNumber, receivedMessage.phaseNumber, "INSTANCE_CHANGE", receivedMessage.viewNumber, currentPeer.name), currentPeer);
       }
-      phaseCounts.commit.delete(commitKey);
-      phaseCounts.prepare.delete(commitKey);
-      phaseCounts.repair.delete(commitKey);
-      phaseCounts.propagate.delete(reqKey);
-      requestkey_data.delete(reqKey);
-      prepareKey_requestKey.delete(prepareKey_requestKey);
+      // phaseCounts.commit.delete(commitKey);
+      // phaseCounts.prepare.delete(commitKey);
+      // phaseCounts.repair.delete(commitKey);
+      // phaseCounts.propagate.delete(reqKey);
+      // requestkey_data.delete(reqKey);
+      // prepareKey_requestKey.delete(prepareKey_requestKey);
     }
   } else {
     console.log(`Duplicate COMMIT message received from ${receivedMessage.sender} for instance ${receivedMessage.instanceNumber}, phase ${receivedMessage.phaseNumber}. Ignoring...`);
